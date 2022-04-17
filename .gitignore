@@ -1,0 +1,11 @@
+__pycache__
+.vscode
+log
+output
+output_dir
+wandb
+*.pd
+*.pdparams
+*.tar
+*.pth
+transfer.py
