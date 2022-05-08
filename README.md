@@ -156,6 +156,7 @@ python -m paddle.distributed.launch --gpus="0,1,2,3" \
     eval.py \
     --model peleenet \
     --batch_size 256 \
+    --train_interpolation 'bilinear' \
     --data_path /path/to/imagenet/ \
     --dist_eval \
     --resume $TRAINED_MODEL
@@ -164,7 +165,7 @@ python -m paddle.distributed.launch --gpus="0,1,2,3" \
 ### 4.3 模型预测
 
 ```shell
-python infer.py \
+python predict.py \
     --model=peleenet \
     --infer_imgs=./demo/ILSVRC2012_val_00020010.JPEG \
     --resume=$TRAINED_MODEL
@@ -197,7 +198,7 @@ python export_model.py \
 ├── engine.py
 ├── eval.py
 ├── export_model.py
-├── infer.py
+├── predict.py
 ├── main.py
 ├── README.md
 ├── requirements.txt
@@ -234,7 +235,7 @@ TIPC结果：
 ```
 Run successfully with command - python3.7 eval.py --model=peleenet --data_path=./dataset/ILSVRC2012/ --cls_label_path=./dataset/ILSVRC2012/val_list.txt --resume=./test_tipc/output/norm_train_gpus_0_autocast_null/peleenet/checkpoint-latest.pd !
 Run successfully with command - python3.7 export_model.py --model=peleenet --resume=./test_tipc/output/norm_train_gpus_0_autocast_null/peleenet/checkpoint-latest.pd --output=./test_tipc/output/norm_train_gpus_0_autocast_null !
-Run successfully with command - python3.7 inference.py --use_gpu=True --use_tensorrt=False --precision=fp32 --model_file=./test_tipc/output/norm_train_gpus_0_autocast_null/model.pdmodel --batch_size=2 --input_file=./dataset/ILSVRC2012/val  --params_file=./test_tipc/output/norm_train_gpus_0_autocast_null/model.pdiparams > ./test_tipc/output/python_infer_gpu_usetrt_False_precision_fp32_batchsize_2.log 2>&1 !
+Run successfully with command - python3.7 infer.py --use_gpu=True --use_tensorrt=False --precision=fp32 --model_file=./test_tipc/output/norm_train_gpus_0_autocast_null/model.pdmodel --batch_size=2 --input_file=./dataset/ILSVRC2012/val  --params_file=./test_tipc/output/norm_train_gpus_0_autocast_null/model.pdiparams > ./test_tipc/output/python_infer_gpu_usetrt_False_precision_fp32_batchsize_2.log 2>&1 !
 ...
 ```
 

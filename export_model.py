@@ -46,7 +46,7 @@ def main(args):
     model = models.__dict__[args.model](
         num_classes=args.nb_classes)
 
-    misc.load_model(args=args, model_without_ddp=model)
+    misc.load_model(args, model)
 
     shape = [-1, 3, args.input_size, args.input_size]
 

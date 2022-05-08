@@ -12,7 +12,7 @@ import os
 from PIL import Image
 
 from util.data import create_transform
-from util.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from util.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, DEFAULT_CROP_PCT
 
 from paddle.io import Dataset
 import paddle.vision.transforms as transforms
@@ -68,8 +68,10 @@ class ImageNetDataset(Dataset):
 def build_dataset(is_train, args):
     transform = build_transform(is_train, args)
 
-    if hasattr(args, 'cls_label_path') and args.cls_label_path:
-        dataset = ImageNetDataset(args.data_path, args.cls_label_path, transform=transform)
+    if is_train and hasattr(args, 'cls_label_path_train') and args.cls_label_path_train:
+        dataset = ImageNetDataset(args.data_path, args.cls_label_path_train, transform=transform)
+    elif not is_train and hasattr(args, 'cls_label_path_val') and args.cls_label_path_val:
+        dataset = ImageNetDataset(args.data_path, args.cls_label_path_val, transform=transform)
     else:
         root = os.path.join(args.data_path,
             'train' if is_train and not (hasattr(args, 'debug') and args.debug) else 'val')
@@ -99,17 +101,16 @@ def build_transform(is_train, args):
         return transform
 
     # eval transform
-    t = []
-    if args.input_size <= 224:
-        crop_pct = 224 / 256
-    else:
-        crop_pct = 1.0
+    crop_pct = args.crop_pct if hasattr(args, 'crop_pct') else DEFAULT_CROP_PCT
     size = int(args.input_size / crop_pct)
-    t.append(
-        transforms.Resize(size),
-    )
-    t.append(transforms.CenterCrop(args.input_size))
-
-    t.append(transforms.ToTensor())
-    t.append(transforms.Normalize(mean, std))
-    return transforms.Compose(t)
+    train_interpolation = args.train_interpolation \
+        if hasattr(args, 'train_interpolation') else 'bilinear'
+    if train_interpolation == 'random':
+        train_interpolation = 'bicubic'
+    transform = transforms.Compose([
+        transforms.Resize(size, interpolation=train_interpolation),
+        transforms.CenterCrop(args.input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std),
+    ])
+    return transform

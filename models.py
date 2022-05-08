@@ -7,7 +7,6 @@ from paddle.nn.initializer import Normal, Constant
 
 
 normal_ = lambda x, mean=0, std=1: Normal(mean, std)(x)
-constant_ = lambda x, value=0: Constant(value)(x)
 zeros_ = Constant(value=0.)
 ones_ = Constant(value=1.)
 

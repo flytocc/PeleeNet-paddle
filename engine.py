@@ -35,7 +35,7 @@ def clear_grad_(optimizer: optim.Optimizer):
 def train_one_epoch(model: nn.Layer, criterion: nn.Layer,
                     data_loader: Iterable, optimizer: optim.Optimizer,
                     epoch: int, loss_scaler,
-                    model_ema: Optional[ModelEma] = None, 
+                    model_ema: Optional[ModelEma] = None,
                     mixup_fn: Optional[Mixup] = None, log_writer=None,
                     num_training_steps_per_epoch=None, use_amp=False,
                     args=None):
@@ -55,10 +55,8 @@ def train_one_epoch(model: nn.Layer, criterion: nn.Layer,
 
         # we use a per iteration (instead of per epoch) lr scheduler
         if data_iter_step % accum_iter == 0:
-            if args.t_in_epochs:
-                lr = lr_sched.adjust_learning_rate(epoch, args)
-            else:
-                lr = lr_sched.adjust_learning_rate(data_iter_step / len(data_loader) + epoch, args)
+            lr = lr_sched.adjust_learning_rate(
+                data_iter_step // accum_iter / num_training_steps_per_epoch + epoch, args)
             optimizer.set_lr(lr)
 
         if mixup_fn is not None:

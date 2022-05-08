@@ -25,7 +25,7 @@ def one_hot(x, num_classes, on_value=1., off_value=0.):
 def mixup_target(target, num_classes, lam=1., smoothing=0.0):
     off_value = smoothing / num_classes
     on_value = 1. - smoothing + off_value
-    y1 = one_hot(target, num_classes, on_value=on_value, off_value=off_value,)
+    y1 = one_hot(target, num_classes, on_value=on_value, off_value=off_value)
     y2 = one_hot(target.flip(0), num_classes, on_value=on_value, off_value=off_value)
     return y1 * lam + y2 * (1. - lam)
 
@@ -241,11 +241,11 @@ class FastCollateMixup(Mixup):
             mixed = batch[i][0]
             if lam != 1.:
                 if use_cutmix[i]:
-                    if not half:
-                        mixed = mixed.copy()
                     (yl, yh, xl, xh), lam = cutmix_bbox_and_lam(
                         output.shape, lam, ratio_minmax=self.cutmix_minmax, correct_lam=self.correct_lam)
                     if  yl < yh and xl < xh:
+                        if not half:
+                            mixed = mixed.copy()
                         mixed[:, yl:yh, xl:xh] = batch[j][0][:, yl:yh, xl:xh]
                     lam_batch[i] = lam
                 else:
@@ -296,8 +296,8 @@ class FastCollateMixup(Mixup):
             mixed = batch[i][0]
             if lam != 1.:
                 if use_cutmix:
-                    mixed = mixed.copy()  # don't want to modify the original while iterating
                     if  yl < yh and xl < xh:
+                        mixed = mixed.copy()  # don't want to modify the original while iterating
                         mixed[:, yl:yh, xl:xh] = batch[j][0][:, yl:yh, xl:xh]
                 else:
                     mixed = mixed.astype(np.float32) * lam + batch[j][0].astype(np.float32) * (1 - lam)

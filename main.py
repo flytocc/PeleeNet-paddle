@@ -21,7 +21,7 @@ from util.datasets import build_dataset
 from util.loss import LabelSmoothingCrossEntropy
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
 from util.misc import WandbLogger
-from util.model_ema import ModelEma
+from util.model_ema import ModelEma, unwrap_model
 from engine import train_one_epoch, evaluate
 
 import models
@@ -68,14 +68,14 @@ def get_args_parser():
 
     # Learning rate schedule parameters
     parser.add_argument('--blr', type=float, default=5e-4, metavar='LR',
-                        help='base learning rate: absolute_lr = base_lr * total_batch_size / 256')
+                        help='base learning rate: absolute_lr = base_lr * total_batch_size / 512')
     parser.add_argument('--lr', type=float, default=None, metavar='LR',
                         help='learning rate (absolute lr)')
     parser.add_argument('--warmup_lr', type=float, default=0, metavar='LR',
                         help='warmup learning rate (default: 0)')
     parser.add_argument('--min_lr', type=float, default=1e-6, metavar='LR',
                         help='lower lr bound for cyclic schedulers that hit 0 (1e-6)')
-    parser.add_argument('--warmup_epochs', type=int, default=20, metavar='N',
+    parser.add_argument('--warmup_epochs', type=int, default=5, metavar='N',
                         help='epochs to warmup LR, if scheduler supports')
     parser.add_argument('--t_in_epochs', action='store_true')
     parser.add_argument('--no_t_in_epochs', action='store_false', dest='t_in_epochs')
@@ -127,13 +127,16 @@ def get_args_parser():
                         help='dataset path')
     parser.add_argument('--nb_classes', default=1000, type=int,
                         help='number of the classification types')
-    parser.add_argument('--cls_label_path', default=None, type=str,
-                        help='dataset label path')
+    parser.add_argument('--cls_label_path_train', default=None, type=str,
+                        help='dataset label path train')
+    parser.add_argument('--cls_label_path_val', default=None, type=str,
+                        help='dataset label path val')
 
     parser.add_argument('--output_dir', default='',
                         help='path where to save, empty for no saving')
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--resume', default='', help='resume from checkpoint')
+    parser.add_argument('--resume_ema', default='', help='resume ema from checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
 
@@ -170,16 +173,14 @@ def main(args):
     dataset_train = build_dataset(is_train=True, args=args)
     dataset_val = build_dataset(is_train=False, args=args)
 
-    sampler_train = DistributedBatchSampler(
-        dataset_train, args.batch_size, shuffle=True, drop_last=False)
+    sampler_train = DistributedBatchSampler(dataset_train, args.batch_size)
     if args.dist_eval:
         num_tasks = misc.get_world_size()
         if len(dataset_val) % num_tasks != 0:
             print('Warning: Enabling distributed evaluation with an eval dataset not divisible by process number. '
                   'This will slightly alter validation results as extra duplicate entries are added to achieve '
                   'equal num of samples per-process.')
-        sampler_val = DistributedBatchSampler(
-            dataset_val, args.batch_size, shuffle=True, drop_last=False)  # shuffle=True to reduce monitor bias
+        sampler_val = DistributedBatchSampler(dataset_val, args.batch_size)
     else:
         sampler_val = BatchSampler(dataset=dataset_val, batch_size=args.batch_size)
 
@@ -272,8 +273,8 @@ def main(args):
     else:
         criterion = nn.CrossEntropyLoss()
 
-    misc.load_model(args=args, model_without_ddp=model_without_ddp,
-                    model_ema=model_ema, optimizer=optimizer, loss_scaler=loss_scaler)
+    misc.load_model(args, model_without_ddp, model_ema=model_ema,
+                    optimizer=optimizer, loss_scaler=loss_scaler)
 
     if args.eval:
         test_stats = evaluate(data_loader_val, model, use_amp=args.use_amp)
@@ -285,6 +286,16 @@ def main(args):
     max_accuracy = 0.0
     if args.model_ema and args.model_ema_eval:
         max_accuracy_ema = 0.0
+
+    if args.resume:
+        test_stats = evaluate(data_loader_val, model, use_amp=args.use_amp)
+        max_accuracy = max(max_accuracy, test_stats['acc1'])
+        print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
+        if args.model_ema and args.model_ema_eval:
+            test_stats_ema = evaluate(data_loader_val, unwrap_model(model_ema), use_amp=args.use_amp)
+            max_accuracy_ema = max(max_accuracy_ema, test_stats_ema['acc1'])
+            print(f"Accuracy of the model EMA on {len(dataset_val)} test images: {test_stats_ema['acc1']:.1f}%")
+
     for epoch in range(args.start_epoch, args.epochs):
         data_loader_train.batch_sampler.set_epoch(epoch)
 
@@ -304,17 +315,14 @@ def main(args):
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
 
         if args.output_dir:
-            misc.save_model(
-                args=args, model_without_ddp=model_without_ddp, model_ema=model_ema, optimizer=optimizer,
-                loss_scaler=loss_scaler, epoch=epoch, tag='latest')
+            misc.save_model(args, epoch, model_without_ddp,
+                            model_ema=model_ema, optimizer=optimizer, loss_scaler=loss_scaler, tag='latest')
             if test_stats["acc1"] > max_accuracy:
-                misc.save_model(
-                    args=args, model_without_ddp=model_without_ddp, model_ema=model_ema, optimizer=optimizer,
-                    loss_scaler=loss_scaler, epoch=epoch, tag='best')
+                misc.save_model(args, epoch, model_without_ddp,
+                                model_ema=model_ema, optimizer=optimizer, loss_scaler=loss_scaler, tag='best')
             if (epoch + 1) % 20 == 0 or epoch + 1 == args.epochs:
-                misc.save_model(
-                    args=args, model_without_ddp=model_without_ddp, model_ema=model_ema, optimizer=optimizer,
-                    loss_scaler=loss_scaler, epoch=epoch)
+                misc.save_model(args, epoch, model_without_ddp,
+                                model_ema=model_ema, optimizer=optimizer, loss_scaler=loss_scaler)
 
         max_accuracy = max(max_accuracy, test_stats["acc1"])
         print(f'Max accuracy: {max_accuracy:.2f}%')
@@ -327,12 +335,11 @@ def main(args):
 
         # repeat testing routines for EMA, if ema eval is turned on
         if args.model_ema and args.model_ema_eval:
-            test_stats_ema = evaluate(data_loader_val, model_ema.ema, use_amp=args.use_amp)
+            test_stats_ema = evaluate(data_loader_val, unwrap_model(model_ema), use_amp=args.use_amp)
             print(f"Accuracy of the model EMA on {len(dataset_val)} test images: {test_stats_ema['acc1']:.1f}%")
             if args.output_dir and test_stats_ema["acc1"] > max_accuracy_ema:
-                misc.save_model(
-                    args=args, model_without_ddp=model_without_ddp, model_ema=model_ema, optimizer=optimizer,
-                    loss_scaler=loss_scaler, epoch=epoch, tag='best-ema')
+                misc.save_model(args, epoch, model_without_ddp,
+                                model_ema=model_ema, optimizer=optimizer, loss_scaler=loss_scaler, tag='best-ema')
             max_accuracy_ema = max(max_accuracy_ema, test_stats_ema["acc1"])
             print(f'Max accuracy of the model EMA: {max_accuracy_ema:.2f}%')
             log_stats.update({**{f'test_{k}_ema': v for k, v in test_stats_ema.items()},

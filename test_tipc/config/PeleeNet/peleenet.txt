@@ -1,6 +1,6 @@
 ===========================train_params===========================
 model_name:peleenet
-python:python3.7
+python:python3
 gpu_list:0|0,1
 null:null
 null:null
@@ -13,7 +13,7 @@ train_infer_img_dir:./dataset/ILSVRC2012/val
 null:null
 ##
 trainer:norm_train
-norm_train:main.py --model=peleenet --data_path=./dataset/ILSVRC2012/ --cls_label_path=./dataset/ILSVRC2012/train_list.txt --dist_eval
+norm_train:main.py --model=peleenet --data_path=./dataset/ILSVRC2012/ --cls_label_path_train=./dataset/ILSVRC2012/train_list.txt --cls_label_path_val=./dataset/ILSVRC2012/val_list.txt --dist_eval
 pact_train:null
 fpgm_train:null
 distill_train:null
@@ -21,7 +21,7 @@ null:null
 null:null
 ##
 ===========================eval_params=========================== 
-eval:eval.py --model=peleenet --data_path=./dataset/ILSVRC2012/ --cls_label_path=./dataset/ILSVRC2012/val_list.txt
+eval:eval.py --model=peleenet --data_path=./dataset/ILSVRC2012/ --cls_label_path_val=./dataset/ILSVRC2012/val_list.txt
 null:null
 ##
 ===========================infer_params==========================
@@ -37,7 +37,7 @@ inference_dir:null
 infer_model:null
 infer_export:null
 infer_quant:False
-inference:inference.py
+inference:infer.py
 --use_gpu:True
 --enable_mkldnn:True|False
 --cpu_threads:1|2

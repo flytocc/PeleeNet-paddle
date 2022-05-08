@@ -48,9 +48,9 @@ class ModelEma:
     def _load_checkpoint(self, checkpoint_path):
         checkpoint = paddle.load(checkpoint_path)
         assert isinstance(checkpoint, dict)
-        if 'state_dict_ema' in checkpoint:
+        if 'model_ema' in checkpoint:
             new_state_dict = OrderedDict()
-            for k, v in checkpoint['state_dict_ema'].items():
+            for k, v in checkpoint['model_ema'].items():
                 # ema model may have been wrapped by DataParallel, and need module prefix
                 if self.ema_has_module:
                     name = 'module.' + k if not k.startswith('module') else k
@@ -58,9 +58,9 @@ class ModelEma:
                     name = k
                 new_state_dict[name] = v
             self.ema.set_state_dict(new_state_dict)
-            _logger.info("Loaded state_dict_ema")
+            _logger.info("Loaded model_ema")
         else:
-            _logger.warning("Failed to find state_dict_ema, starting from loaded model weights")
+            _logger.warning("Failed to find model_ema, starting from loaded model weights")
 
     def update(self, model):
         # correct a mismatch in state dict keys

@@ -7,6 +7,7 @@ class LabelSmoothingCrossEntropy(nn.Layer):
     """
     NLL loss with label smoothing.
     """
+
     def __init__(self, smoothing=0.1):
         """
         Constructor for the LabelSmoothing module.

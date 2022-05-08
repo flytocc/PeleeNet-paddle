@@ -15,11 +15,11 @@ def _get_pixels(per_pixel, rand_color, patch_size, dtype=paddle.float32):
     # paths, flip the order so normal is run on CPU if this becomes a problem
     # Issue has been fixed in master https://github.com/pytorch/pytorch/issues/19508
     if per_pixel:
-        return paddle.normal(shape=patch_size)
+        return paddle.normal(shape=patch_size).astype(dtype)
     elif rand_color:
-        return paddle.normal(shape=(patch_size[0], 1, 1), dtype=dtype)
+        return paddle.normal(shape=[patch_size[0], 1, 1]).astype(dtype)
     else:
-        return paddle.zeros((patch_size[0], 1, 1), dtype=dtype)
+        return paddle.zeros([patch_size[0], 1, 1], dtype=dtype)
 
 
 class RandomErasing:

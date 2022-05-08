@@ -286,13 +286,14 @@ def save_on_master(*args, **kwargs):
         paddle.save(*args, **kwargs)
 
 
-def save_model(args, epoch, model_without_ddp, model_ema, optimizer, loss_scaler, tag=None):
+def save_model(args, epoch, model_without_ddp, model_ema=None, optimizer=None, loss_scaler=None, tag=None):
     to_save = {
         'model': model_without_ddp.state_dict(),
-        'optimizer': optimizer.state_dict(),
         'epoch': epoch,
         'args': args,
     }
+    if optimizer is not None:
+        to_save['optimizer'] = optimizer.state_dict()
     if model_ema is not None:
         to_save['model_ema'] = get_state_dict(model_ema)
     if loss_scaler is not None:
@@ -306,10 +307,14 @@ def load_model(args, model_without_ddp, model_ema=None, optimizer=None, loss_sca
         checkpoint = paddle.load(args.resume)
         model_without_ddp.set_state_dict(checkpoint['model'])
         print("Resume checkpoint %s" % args.resume)
-        if 'optimizer' in checkpoint and 'epoch' in checkpoint and not (hasattr(args, 'eval') and args.eval):
-            optimizer.set_state_dict(checkpoint['optimizer'])
+        if 'epoch' in checkpoint:
             args.start_epoch = checkpoint['epoch'] + 1
-            if 'scaler' in checkpoint:
-                loss_scaler.load_state_dict(checkpoint['scaler'])
-            if args.model_ema:
-                load_checkpoint_for_ema(model_ema, checkpoint['model_ema'])
+        if model_ema is not None:
+            if hasattr(args, 'resume_ema') and args.resume_ema:
+                model_ema._load_checkpoint(args.resume_ema)
+            elif 'model_ema' in checkpoint:
+                load_checkpoint_for_ema(model_ema, checkpoint)
+        if optimizer is not None and 'optimizer' in checkpoint:
+            optimizer.set_state_dict(checkpoint['optimizer'])
+        if loss_scaler is not None and 'scaler' in checkpoint:
+            loss_scaler.load_state_dict(checkpoint['scaler'])

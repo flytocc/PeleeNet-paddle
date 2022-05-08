@@ -28,8 +28,10 @@ def get_args_parser():
                         help='dataset path')
     parser.add_argument('--nb_classes', default=1000, type=int,
                         help='number of the classification types')
-    parser.add_argument('--cls_label_path', default=None, type=str,
+    parser.add_argument('--cls_label_path_val', default=None, type=str,
                         help='dataset label path')
+    parser.add_argument('--train_interpolation', type=str, default='bicubic',
+                        help='Training interpolation (random, bilinear, bicubic default: "bicubic")')
 
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--dist_eval', action='store_true', default=False, help='Enabling distributed evaluation')
@@ -66,10 +68,11 @@ def main(args):
     n_parameters = sum(p.numel().item() for p in model.parameters() if not p.stop_gradient)
     print(f'number of params: {n_parameters / 1e6} M')
 
-    misc.load_model(args=args, model_without_ddp=model_without_ddp)
+    misc.load_model(args, model_without_ddp)
 
     test_stats = evaluate(data_loader_val, model)
     print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('PeleeNet training and evaluation script', parents=[get_args_parser()])
