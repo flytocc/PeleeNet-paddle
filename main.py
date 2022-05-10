@@ -173,7 +173,7 @@ def main(args):
     dataset_train = build_dataset(is_train=True, args=args)
     dataset_val = build_dataset(is_train=False, args=args)
 
-    sampler_train = DistributedBatchSampler(dataset_train, args.batch_size)
+    sampler_train = DistributedBatchSampler(dataset_train, args.batch_size, shuffle=True)
     if args.dist_eval:
         num_tasks = misc.get_world_size()
         if len(dataset_val) % num_tasks != 0:

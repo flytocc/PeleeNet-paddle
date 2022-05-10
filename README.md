@@ -52,9 +52,9 @@ PeleeNet是一个高效的卷积神经网络（CNN）架构，由传统的卷积
 
 您可以从[ImageNet 官网](https://image-net.org/)申请下载数据。
 
-| 模型      | top1 acc (参考精度) | top1 acc (复现精度) | 权重 \| 训练日志 |
-|:---------:|:------:|:----------:|:----------:|
-| PeleeNet | 0.726   | 0.726   | checkpoint-best.pd \| log.txt |
+| 模型      | epochs | top1 acc (参考精度) | top1 acc (复现精度) | 权重 \| 训练日志 |
+|:--------:|:------:|:--------------------------------------:|:-----:|:-----------------------------:|
+| PeleeNet | 120+20 | 0.726 (paper) \| 0.716 (official repo) | 0.716 | checkpoint-best.pd \| log.txt |
 
 权重及训练日志下载地址：[百度网盘](https://pan.baidu.com/s/1T0-PK7MG48qQQMwZDT5bEg?pwd=vg37)
 
@@ -119,9 +119,14 @@ python -m paddle.distributed.launch --gpus="0,1" \
     --opt momentum --weight_decay 1e-4 --min_lr 0 --warmup_epochs 0 \
     --lr 0.25 --epochs 120 \
     --data_path /path/to/imagenet/ \
+    --cls_label_path_train /path/to/train_list.txt \
+    --cls_label_path_val /path/to/val_list.txt \
     --output_dir output/peleenet_pt/ \
     --dist_eval
 ```
+
+ps: 如果未指定`cls_label_path_train`/`cls_label_path_val`，会读取`data_path`下train/val里的图片作为train-set/val-set。
+
 
 fintune
 
@@ -136,10 +141,15 @@ python -m paddle.distributed.launch --gpus="0,1" \
     --opt momentum --weight_decay 1e-4 --min_lr 0 --warmup_epochs 0 \
     --lr 0.005 --epochs 20 \
     --data_path /path/to/imagenet/ \
+    --cls_label_path_train /path/to/train_list.txt \
+    --cls_label_path_val /path/to/val_list.txt \
     --output_dir output/peleenet_ft/ \
     --dist_eval \
     --no_remove_head_from_pretained --finetune $PRETRAINED_MODEL
 ```
+
+ps: 如果未指定`cls_label_path_train`/`cls_label_path_val`，会读取`data_path`下train/val里的图片作为train-set/val-set。
+
 
 部分训练日志如下所示。
 
@@ -151,24 +161,25 @@ python -m paddle.distributed.launch --gpus="0,1" \
 ### 4.2 模型评估
 
 ``` shell
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-python -m paddle.distributed.launch --gpus="0,1,2,3" \
-    eval.py \
+python eval.py \
     --model peleenet \
     --batch_size 256 \
     --train_interpolation 'bilinear' \
     --data_path /path/to/imagenet/ \
-    --dist_eval \
+    --cls_label_path_val /path/to/val_list.txt \
     --resume $TRAINED_MODEL
 ```
+
+ps: 如果未指定`cls_label_path_val`，会读取`data_path`/val里的图片作为val-set。
+
 
 ### 4.3 模型预测
 
 ```shell
 python predict.py \
-    --model=peleenet \
-    --infer_imgs=./demo/ILSVRC2012_val_00020010.JPEG \
-    --resume=$TRAINED_MODEL
+    --model peleenet \
+    --infer_imgs ./demo/ILSVRC2012_val_00020010.JPEG \
+    --resume $TRAINED_MODEL
 ```
 
 <div align="center">
@@ -177,29 +188,43 @@ python predict.py \
 
 最终输出结果为
 ```
-[{'class_ids': [178, 211, 209, 246, 171], 'scores': [0.9948868155479431, 0.0013512127334252, 0.0012590953847393394, 0.0010243570432066917, 0.0006136439624242485], 'file_name': './demo/ILSVRC2012_val_00020010.JPEG', 'label_names': ['Weimaraner', 'vizsla,, Hungarian, pointer', 'Chesapeake, Bay, retriever', 'Great, Dane', 'Italian, greyhound']}]
+[{'class_ids': [178, 246, 211, 236, 159], 'scores': [0.9958848357200623, 0.0028915307484567165, 0.00047466575051657856, 0.00018126785289496183, 0.00013171554019208997], 'file_name': './demo/ILSVRC2012_val_00020010.JPEG', 'label_names': ['Weimaraner', 'Great Dane', 'vizsla, Hungarian pointer', 'Doberman, Doberman pinscher', 'Rhodesian ridgeback']}]
 ```
-表示预测的类别为`Weimaraner（魏玛猎狗）`，ID是`178`，置信度为`0.9948868155479431`。
+表示预测的类别为`Weimaraner（魏玛猎狗）`，ID是`178`，置信度为`0.9958848357200623`。
 
 ### 4.4 模型导出
 
 ```shell
 python export_model.py \
     --model peleenet \
-    --output_dir ./output/ \
+    --output_dir /path/to/save/export_model/ \
     --resume $TRAINED_MODEL
+
+python infer.py \
+    --train_interpolation 'bilinear' \
+    --model_file /path/to/save/export_model/output/model.pdmodel \
+    --params_file /path/to/save/export_model/output/model.pdiparams \
+    --input_file ./demo/ILSVRC2012_val_00020010.JPEG
 ```
+
+输出结果为
+```
+[{'class_ids': [178, 246, 211, 236, 159], 'scores': [0.996401309967041, 0.00265419646166265, 0.0004626315494533628, 0.00010984008986270055, 8.304142829729244e-05], 'file_name': './demo/ILSVRC2012_val_00020010.JPEG', 'label_names': ['Weimaraner', 'Great Dane', 'vizsla, Hungarian pointer', 'Doberman, Doberman pinscher', 'Rhodesian ridgeback']}]
+```
+表示预测的类别为`Weimaraner（魏玛猎狗）`，ID是`178`，置信度为`0.996401309967041`。与predict.py结果的误差在正常范围内。
+
 
 ## 5. 代码结构
 
 ```
-├── models.py
 ├── demo
 ├── engine.py
 ├── eval.py
 ├── export_model.py
-├── predict.py
+├── infer.py
 ├── main.py
+├── models.py
+├── predict.py
 ├── README.md
 ├── requirements.txt
 ├── test_tipc
@@ -233,10 +258,10 @@ TIPC结果：
 如果运行成功，在终端中会显示下面的内容，具体的日志也会输出到`test_tipc/output/`文件夹中的文件中。
 
 ```
-Run successfully with command - python3.7 eval.py --model=peleenet --data_path=./dataset/ILSVRC2012/ --cls_label_path=./dataset/ILSVRC2012/val_list.txt --resume=./test_tipc/output/norm_train_gpus_0_autocast_null/peleenet/checkpoint-latest.pd !
-Run successfully with command - python3.7 export_model.py --model=peleenet --resume=./test_tipc/output/norm_train_gpus_0_autocast_null/peleenet/checkpoint-latest.pd --output=./test_tipc/output/norm_train_gpus_0_autocast_null !
-Run successfully with command - python3.7 infer.py --use_gpu=True --use_tensorrt=False --precision=fp32 --model_file=./test_tipc/output/norm_train_gpus_0_autocast_null/model.pdmodel --batch_size=2 --input_file=./dataset/ILSVRC2012/val  --params_file=./test_tipc/output/norm_train_gpus_0_autocast_null/model.pdiparams > ./test_tipc/output/python_infer_gpu_usetrt_False_precision_fp32_batchsize_2.log 2>&1 !
-...
+Run successfully with command - python3 main.py --model=peleenet --aa='' --smoothing=0 --train_interpolation=bilinear --reprob=0 --mixup=0 --cutmix=0 --lr=0.25 --data_path=./dataset/ILSVRC2012/ --cls_label_path_train=./dataset/ILSVRC2012/train_list.txt --cls_label_path_val=./dataset/ILSVRC2012/val_list.txt --dist_eval    --output_dir=./test_tipc/output/norm_train_gpus_0_autocast_null/peleenet --epochs=2     --batch_size=8 !
+Run successfully with command - python3 eval.py --model=peleenet --train_interpolation=bilinear --data_path=./dataset/ILSVRC2012/ --cls_label_path_val=./dataset/ILSVRC2012/val_list.txt --resume=./test_tipc/output/norm_train_gpus_0_autocast_null/peleenet/checkpoint-latest.pd !
+Run successfully with command - python3 export_model.py --model=peleenet --resume=./test_tipc/output/norm_train_gpus_0_autocast_null/peleenet/checkpoint-latest.pd --output=./test_tipc/output/norm_train_gpus_0_autocast_null !
+......
 ```
 
 * 更多详细内容，请参考：[TIPC测试文档](./test_tipc/README.md)。
