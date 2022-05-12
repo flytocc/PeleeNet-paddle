@@ -118,7 +118,7 @@ python -m paddle.distributed.launch --gpus="0,1" \
     --aa '' --smoothing 0 --train_interpolation 'bilinear' --reprob 0 \
     --mixup 0 --cutmix 0 \
     --opt momentum --weight_decay 1e-4 --min_lr 0 --warmup_epochs 0 \
-    --lr 0.25 --epochs 120 \
+    --lr 0.18 --epochs 120 \
     --data_path /path/to/imagenet/ \
     --cls_label_path_train /path/to/train_list.txt \
     --cls_label_path_val /path/to/val_list.txt \
