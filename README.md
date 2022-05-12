@@ -54,7 +54,8 @@ PeleeNet是一个高效的卷积神经网络（CNN）架构，由传统的卷积
 
 | 模型      | epochs | top1 acc (参考精度) | top1 acc (复现精度) | 权重 \| 训练日志 |
 |:--------:|:------:|:--------------------------------------:|:-----:|:-----------------------------:|
-| PeleeNet | 120+20 | 0.726 (paper) \| 0.716 (official repo) | 0.716 | checkpoint-best.pd \| log.txt |
+| PeleeNet | 120    | - \| 0.713 (official repo) | 0.713 | 120epochs-pretrain_(checkpoint-latest.pd \| log.txt) |
+| PeleeNet | 120+20 | 0.726 (paper) \| 0.716 (official repo) | 0.716 | 20epochs-finetune_(checkpoint-best.pd \| 20epochs-finetune_log.txt) |
 
 权重及训练日志下载地址：[百度网盘](https://pan.baidu.com/s/1T0-PK7MG48qQQMwZDT5bEg?pwd=vg37)
 
