@@ -270,7 +270,7 @@ Run successfully with command - python3 export_model.py --model=peleenet --resum
 
 ## 7. License
 
-PeleeNet is released under MIT License.
+PeleeNet-paddle is released under `Apache License 2.0`.
 
 
 ## 8. 参考链接与文献
