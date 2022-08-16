@@ -274,5 +274,20 @@ PeleeNet is released under MIT License.
 
 
 ## 8. 参考链接与文献
+
 1. PeleeNet: An efficient DenseNet architecture for mobile devices: https://arxiv.org/pdf/1804.06882.pdf
 2. PeleeNet: https://github.com/Robert-JunWang/PeleeNet
+
+再次感谢`Robert-JunWang`贡献的[PeleeNet](https://github.com/Robert-JunWang/PeleeNet)，提高了本repo复现论文的效率。
+```
+@incollection{NIPS2018_7466,
+title = {Pelee: A Real-Time Object Detection System on Mobile Devices},
+author = {Wang, Robert J. and Li, Xiang and Ling, Charles X.},
+booktitle = {Advances in Neural Information Processing Systems 31},
+editor = {S. Bengio and H. Wallach and H. Larochelle and K. Grauman and N. Cesa-Bianchi and R. Garnett},
+pages = {1963--1972},
+year = {2018},
+publisher = {Curran Associates, Inc.},
+url = {http://papers.nips.cc/paper/7466-pelee-a-real-time-object-detection-system-on-mobile-devices.pdf}
+}
+```
