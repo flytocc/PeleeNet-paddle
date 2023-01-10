@@ -1,5 +1,7 @@
 numpy
 paddlepaddle_gpu>=2.2
-Pillow==8.4.0
+# 复现基于pillow 8.4.0，但github一直报安全提醒，所以改成了>9.0.0。
+# 主要区别在open函数，9.0.0之后的open和opencv中imread的效果一致。
+Pillow>9.0.0
 opencv-python
 wandb
